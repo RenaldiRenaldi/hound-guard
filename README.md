@@ -49,15 +49,15 @@ That is the same instinct zkVerify's Agent Games is built around: don't trust th
 
 ## Try it
 
-Live endpoint: *(deployed URL goes here)*
+Live endpoint: https://hound-guard.vercel.app
 
 ```bash
 # Unlimited approval — should return BLOCK, UNLIMITED_APPROVAL
-curl -X POST <endpoint>/analyze \
+curl -X POST https://hound-guard.vercel.app/analyze \
   -H 'Content-Type: application/json' \
   -d '{"to":"0x0000000000000000000000000000000000000000","data":"0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","value":"0x0"}'
 
-# Or open <endpoint>/demo in a browser for a form.
+# Or open https://hound-guard.vercel.app/demo in a browser for a form.
 ```
 
 Run it locally:
