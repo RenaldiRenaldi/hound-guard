@@ -182,13 +182,26 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/demo') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Hound Guard — demo</title></head><body style="font-family:sans-serif;max-width:640px;margin:40px auto">
-<h1>Hound Guard</h1><p>Pre-signing transaction guard. Paste a transaction and check it before you sign.</p>
+<h1>Hound Guard</h1><p>Pre-signing transaction guard. Paste a transaction and check it before you sign — or try a preset below.</p>
+<p><b>Try one:</b><br>
+<button onclick="fill('unlimited')">Unlimited approval (BLOCK)</button>
+<button onclick="fill('nft')">setApprovalForAll (BLOCK)</button>
+<button onclick="fill('permit')">permit() (CAUTION)</button>
+<button onclick="fill('safe')">Safe transfer (SAFE)</button></p>
 <form onsubmit="return go(event)"><label>To (address)<br><input id="to" style="width:100%" value="0x0000000000000000000000000000000000000000"></label><br><br>
 <label>Calldata (hex)<br><input id="data" style="width:100%" value="0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"></label><br><br>
 <label>Value (wei, hex or 0)<br><input id="value" style="width:100%" value="0x0"></label><br><br>
 <button type="submit">Analyze</button></form><pre id="out" style="background:#f4f4f4;padding:12px;white-space:pre-wrap"></pre>
-<script>async function go(e){e.preventDefault();const r=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:document.getElementById('to').value,data:document.getElementById('data').value,value:document.getElementById('value').value})});document.getElementById('out').textContent=JSON.stringify(await r.json(),null,2);return false}</script>
-<p>Try the default: an <code>approve()</code> for the maximum uint256 — an unlimited approval. The guard should return BLOCK with the UNLIMITED_APPROVAL flag.</p></body></html>`);
+<script>
+const PRESETS={
+unlimited:{to:'0x0000000000000000000000000000000000000000',data:'0x095ea7b3'+'0000000000000000000000001111111111111111111111111111111111111111'+'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',value:'0x0'},
+nft:{to:'0x0000000000000000000000000000000000000000',data:'0xa22cb465'+'0000000000000000000000001111111111111111111111111111111111111111'+'0000000000000000000000000000000000000000000000000000000000000001',value:'0x0'},
+permit:{to:'0x0000000000000000000000000000000000000000',data:'0xd505accf'+'0000000000000000000000001111111111111111111111111111111111111111'+'0000000000000000000000002222222222222222222222222222222222222222'+'00000000000000000000000000000000000000000000000000000000000003e8'+'00000000000000000000000000000000000000000000000000000000693d0000'+'000000000000000000000000000000000000000000000000000000000000001b'+'0000000000000000000000000000000000000000000000000000000000000000'+'0000000000000000000000000000000000000000000000000000000000000000',value:'0x0'},
+safe:{to:'0x0000000000000000000000000000000000000000',data:'0xa9059cbb'+'0000000000000000000000002222222222222222222222222222222222222222'+'00000000000000000000000000000000000000000000000000000000000003e8',value:'0x0'}
+};
+function fill(k){const p=PRESETS[k];document.getElementById('to').value=p.to;document.getElementById('data').value=p.data;document.getElementById('value').value=p.value;go(new Event('submit'))}
+async function go(e){e.preventDefault();const r=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:document.getElementById('to').value,data:document.getElementById('data').value,value:document.getElementById('value').value})});document.getElementById('out').textContent=JSON.stringify(await r.json(),null,2);return false}</script>
+<p>Unlimited approval = an <code>approve()</code> for the maximum uint256. The guard returns BLOCK with the UNLIMITED_APPROVAL flag. setApprovalForAll(true) hands one operator every NFT in the collection — also BLOCK. permit() is an off-chain approval — CAUTION. A bounded transfer is SAFE.</p></body></html>`);
   }
 
   if (req.method === 'POST' && req.url === '/analyze') {

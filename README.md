@@ -47,6 +47,24 @@ The analysis is a **pure function of the transaction alone**. No network calls, 
 
 That is the same instinct zkVerify's Agent Games is built around: don't trust the agent, verify it. A zkVerify proof would make the verdict checkable on-chain; the guard's determinism already makes it checkable off-chain, and the code is small enough to audit by reading it.
 
+## How zkVerify would verify this (concrete design)
+
+The guard's verdict is deterministic, so it is exactly the kind of claim a zero-knowledge proof is made for. Here is how it maps onto zkVerify, step by step:
+
+1. **Public inputs.** The transaction hash `keccak256(to, data, value)`, the risk score, and the recommendation (SAFE / CAUTION / BLOCK). Anyone can compute the hash from the transaction the user is about to sign.
+2. **Private inputs.** The full calldata and the scoring rules (the selector table, the 2^255 unlimited threshold, the per-pattern weights). These stay inside the prover.
+3. **The circuit.** It replays the guard's logic: decode the 4-byte selector, look it up, parse the arguments, apply each rule, sum the score, and derive the recommendation from the thresholds (0–29 SAFE, 30–69 CAUTION, 70–100 BLOCK). The circuit outputs the score and recommendation.
+4. **The proof.** The prover generates a Groth16 proof that the circuit ran correctly on the transaction whose hash is the public input, and that the score it outputs equals the score the guard returned.
+5. **Verification.** Anyone — a wallet, a dApp, or zkVerify's own relayer — verifies the proof against the public inputs. If it checks out, the verdict is true for that transaction, without re-running the analysis and without trusting the guard's server.
+
+What that buys: a wallet could refuse to even show a signing prompt for a BLOCK transaction unless the accompanying proof verifies, and a user could check a CAUTION verdict on-chain before deciding. The proof does not make the guard smarter — it makes the guard's claim *checkable by someone who does not trust it*. That is the whole point of verifiable agents, and it is why this guard was built deterministic in the first place: determinism is what makes a proof possible at all.
+
+**Honest status:** the live endpoint today proves determinism off-chain — anyone can re-run the same input and must get the same output. The on-chain Groth16 proof above is the designed next step, not yet implemented; the scoring logic was written to be circuit-friendly (fixed selector table, integer thresholds, no floating point, no external calls) so the proof can be built without redesigning the guard.
+
+## Hound Guard is an agent, not just a function
+
+A function answers when called. Hound Guard is an agent because it closes the loop on its own: it **perceives** (reads the transaction a wallet is about to present), **reasons** (decodes the calldata, matches it against the dangerous-pattern rules, weighs the evidence into a score), and **acts** (issues a verdict — SAFE, CAUTION, or BLOCK — that decides whether the user should proceed). No human is in the loop for the analysis itself; the human's only job is the final decision the verdict informs. The guard never signs, never holds keys, never moves funds — its only power is the verdict, and the verdict is what it is for.
+
 ## Try it
 
 Live endpoint: https://hound-guard.vercel.app
